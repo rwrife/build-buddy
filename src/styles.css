@@ -1,0 +1,173 @@
+:root {
+  color-scheme: light dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 20px;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+h1,
+h2 {
+  margin-top: 0;
+}
+
+header p {
+  color: #94a3b8;
+}
+
+.panel {
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #111827;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+
+input,
+select,
+button {
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #0b1220;
+  color: #e2e8f0;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+input:focus,
+select:focus,
+button:focus {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 1px;
+}
+
+.checkbox-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.controls-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+button.primary {
+  background: #0369a1;
+  border-color: #0284c7;
+}
+
+.status-banner {
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid transparent;
+}
+
+.status-info {
+  background: #082f49;
+  border-color: #0369a1;
+}
+
+.status-success {
+  background: #052e16;
+  border-color: #16a34a;
+}
+
+.status-error {
+  background: #450a0a;
+  border-color: #dc2626;
+}
+
+.metrics-text {
+  color: #94a3b8;
+  margin-bottom: 12px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border-bottom: 1px solid #1e293b;
+  padding: 8px;
+  font-size: 13px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: #cbd5e1;
+}
+
+.badge {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 12px;
+  border: 1px solid transparent;
+}
+
+.badge-ok {
+  background: #064e3b;
+  border-color: #10b981;
+}
+
+.badge-warn {
+  background: #3f2305;
+  border-color: #f59e0b;
+}
+
+.badge-muted {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.link-button {
+  cursor: pointer;
+  color: #93c5fd;
+  background: transparent;
+  border: 1px solid #334155;
+  padding: 2px 8px;
+}
+
+.stale-issue-row {
+  margin-bottom: 4px;
+}
+
+.muted-small {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.empty-cell {
+  color: #94a3b8;
+  text-align: center;
+}
+
+@media (max-width: 1100px) {
+  .controls-grid {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+}

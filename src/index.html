@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>build-buddy · GitHub Repo Manager</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="../dist/src/renderer.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>build-buddy · GitHub Repo Manager (Issue #11 MVP)</h1>
+      <p>
+        Track repository visibility, open issues, stale issues, and open PRs for your GitHub
+        portfolio.
+      </p>
+    </header>
+
+    <section class="panel controls-grid">
+      <label>
+        GitHub token (PAT)
+        <input id="token" type="password" placeholder="ghp_..." autocomplete="off" />
+      </label>
+
+      <label>
+        Stale threshold (days)
+        <input id="staleDays" type="number" min="1" max="3650" value="30" />
+      </label>
+
+      <label>
+        Auto-refresh (minutes, 0 = off)
+        <input id="autoRefreshMinutes" type="number" min="0" max="1440" value="0" />
+      </label>
+
+      <label>
+        Visibility
+        <select id="visibilityFilter">
+          <option value="all">All</option>
+          <option value="public">Public</option>
+          <option value="private">Private</option>
+        </select>
+      </label>
+
+      <label>
+        Sort
+        <select id="sortBy">
+          <option value="stale_desc">Stale issue count (desc)</option>
+          <option value="open_issues_desc">Open issue count (desc)</option>
+          <option value="last_pushed_desc">Last push (newest first)</option>
+          <option value="last_pushed_asc">Last push (oldest first)</option>
+        </select>
+      </label>
+
+      <label class="checkbox-label">
+        <input id="hasOpenIssuesOnly" type="checkbox" />
+        Has open issues only
+      </label>
+
+      <label class="checkbox-label">
+        <input id="hasStaleIssuesOnly" type="checkbox" />
+        Has stale issues only
+      </label>
+
+      <div class="controls-actions">
+        <button id="saveSettingsButton" type="button">Save settings</button>
+        <button id="refreshButton" type="button" class="primary">Refresh</button>
+      </div>
+    </section>
+
+    <section>
+      <div id="statusBanner" class="status-banner status-info">Ready.</div>
+      <div id="metricsText" class="metrics-text">No data loaded yet.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Repo inventory</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Repo</th>
+            <th>Visibility</th>
+            <th>Archived</th>
+            <th>Default branch</th>
+            <th>Open issues</th>
+            <th>Open PRs</th>
+            <th>Last push</th>
+            <th>Links</th>
+          </tr>
+        </thead>
+        <tbody id="repoTableBody"></tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Issue health</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Repo</th>
+            <th>Open issues</th>
+            <th>Stale issues</th>
+            <th>Stale issue examples</th>
+            <th>Links</th>
+          </tr>
+        </thead>
+        <tbody id="issueHealthBody"></tbody>
+      </table>
+    </section>
+  </body>
+</html>
