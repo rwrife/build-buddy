@@ -144,6 +144,11 @@ th {
   border-color: #475569;
 }
 
+.badge-error {
+  background: #450a0a;
+  border-color: #ef4444;
+}
+
 .link-button {
   cursor: pointer;
   color: #93c5fd;

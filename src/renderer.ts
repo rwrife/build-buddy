@@ -1,5 +1,6 @@
 type VisibilityFilter = "all" | "public" | "private";
 type SortBy = "stale_desc" | "open_issues_desc" | "last_pushed_desc" | "last_pushed_asc";
+type WorkflowHealth = "passing" | "failing" | "pending" | "unknown";
 
 interface AppSettings {
   token: string;
@@ -32,6 +33,11 @@ interface RepoSummary {
   pushedAt: string;
   repoUrl: string;
   staleIssues: IssueSummary[];
+  workflowHealth: WorkflowHealth;
+  latestWorkflowName: string | null;
+  latestWorkflowRunUrl: string | null;
+  latestWorkflowUpdatedAt: string | null;
+  latestFailedRunUrl: string | null;
 }
 
 interface PortfolioData {
@@ -197,9 +203,10 @@ function render(): void {
 
   const staleTotal = repos.reduce((sum, repo) => sum + repo.staleIssueCount, 0);
   const issueTotal = repos.reduce((sum, repo) => sum + repo.openIssueCount, 0);
+  const failingCiTotal = repos.filter((repo) => repo.workflowHealth === "failing").length;
 
   metricsText.textContent =
-    `Showing ${repos.length} repos · ${issueTotal} open issues · ${staleTotal} stale issues` +
+    `Showing ${repos.length} repos · ${issueTotal} open issues · ${staleTotal} stale issues · ${failingCiTotal} with failing CI` +
     (state.lastFetchedAt ? ` · Last refresh: ${formatTimestamp(state.lastFetchedAt)}` : "");
 }
 
@@ -209,7 +216,7 @@ function renderRepoInventory(repos: RepoSummary[]): void {
   if (repos.length === 0) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 8;
+    cell.colSpan = 10;
     cell.textContent = "No repositories match the current filters.";
     cell.className = "empty-cell";
     row.appendChild(cell);
@@ -225,6 +232,8 @@ function renderRepoInventory(repos: RepoSummary[]): void {
     row.appendChild(cellWithText(repo.defaultBranch));
     row.appendChild(cellWithText(String(repo.openIssueCount)));
     row.appendChild(cellWithText(String(repo.openPrCount)));
+    row.appendChild(cellWithWorkflowHealth(repo.workflowHealth));
+    row.appendChild(cellWithLatestFailedRun(repo.latestFailedRunUrl));
     row.appendChild(cellWithText(formatDate(repo.pushedAt)));
 
     const actionCell = document.createElement("td");
@@ -304,12 +313,35 @@ function cellWithText(text: string): HTMLTableCellElement {
   return cell;
 }
 
-function cellWithBadge(text: string, tone: "ok" | "warn" | "muted"): HTMLTableCellElement {
+function cellWithBadge(text: string, tone: "ok" | "warn" | "muted" | "error"): HTMLTableCellElement {
   const cell = document.createElement("td");
   const span = document.createElement("span");
   span.textContent = text;
   span.className = `badge badge-${tone}`;
   cell.appendChild(span);
+  return cell;
+}
+
+function cellWithWorkflowHealth(health: WorkflowHealth): HTMLTableCellElement {
+  switch (health) {
+    case "passing":
+      return cellWithBadge("passing", "ok");
+    case "failing":
+      return cellWithBadge("failing", "error");
+    case "pending":
+      return cellWithBadge("pending", "warn");
+    default:
+      return cellWithBadge("unknown", "muted");
+  }
+}
+
+function cellWithLatestFailedRun(url: string | null): HTMLTableCellElement {
+  const cell = document.createElement("td");
+  if (url) {
+    cell.appendChild(openButton("Open failing run", url));
+  } else {
+    cell.textContent = "—";
+  }
   return cell;
 }
 

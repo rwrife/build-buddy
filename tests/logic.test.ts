@@ -18,6 +18,11 @@ const repos: RepoSummary[] = [
     pushedAt: "2026-08-01T00:00:00Z",
     repoUrl: "https://github.com/org/alpha",
     staleIssues: [],
+    workflowHealth: "passing",
+    latestWorkflowName: null,
+    latestWorkflowRunUrl: null,
+    latestWorkflowUpdatedAt: null,
+    latestFailedRunUrl: null,
   },
   {
     name: "beta",
@@ -32,6 +37,11 @@ const repos: RepoSummary[] = [
     pushedAt: "2026-07-01T00:00:00Z",
     repoUrl: "https://github.com/org/beta",
     staleIssues: [],
+    workflowHealth: "unknown",
+    latestWorkflowName: null,
+    latestWorkflowRunUrl: null,
+    latestWorkflowUpdatedAt: null,
+    latestFailedRunUrl: null,
   },
   {
     name: "gamma",
@@ -46,6 +56,11 @@ const repos: RepoSummary[] = [
     pushedAt: "2026-08-05T00:00:00Z",
     repoUrl: "https://github.com/org/gamma",
     staleIssues: [],
+    workflowHealth: "failing",
+    latestWorkflowName: null,
+    latestWorkflowRunUrl: null,
+    latestWorkflowUpdatedAt: null,
+    latestFailedRunUrl: null,
   },
 ];
 
