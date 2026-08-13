@@ -28,6 +28,8 @@ This branch adds an Electron desktop utility that helps answer:
   - default branch
   - open issues count
   - open PR count
+  - latest workflow health (passing/failing/pending/unknown)
+  - one-click link to latest failing GitHub Actions run (when available)
   - last push date
 - Issue health table with stale issue examples and click-through links
 - Filters (visibility, has-open-issues, has-stale-issues)

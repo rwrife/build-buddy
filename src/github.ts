@@ -1,5 +1,5 @@
 import { isIssueStale } from "./shared/logic";
-import { IssueSummary, PortfolioData, RepoSummary } from "./shared/types";
+import { IssueSummary, PortfolioData, RepoSummary, WorkflowHealth } from "./shared/types";
 
 const API_BASE = "https://api.github.com";
 const API_VERSION = "2022-11-28";
@@ -25,6 +25,26 @@ interface RestIssue {
   html_url: string;
   updated_at: string;
   pull_request?: unknown;
+}
+
+interface RestWorkflowRun {
+  name: string;
+  html_url: string;
+  status: string;
+  conclusion: string | null;
+  updated_at: string;
+}
+
+interface RestWorkflowRunsResponse {
+  workflow_runs: RestWorkflowRun[];
+}
+
+interface WorkflowSnapshot {
+  health: WorkflowHealth;
+  latestWorkflowName: string | null;
+  latestWorkflowRunUrl: string | null;
+  latestWorkflowUpdatedAt: string | null;
+  latestFailedRunUrl: string | null;
 }
 
 interface JsonResponse<T> {
@@ -56,11 +76,12 @@ export class GitHubClient {
     const repos = await this.listRepos();
 
     const enriched = await mapWithConcurrency(repos, 5, async (repo) => {
-      const [openIssues, openPrCount] = await Promise.all([
+      const [openIssues, openPrCount, workflow] = await Promise.all([
         repo.open_issues_count > 0
           ? this.listOpenIssues(repo.full_name, staleDays)
           : Promise.resolve([] as IssueSummary[]),
         this.getOpenPullRequestCount(repo.full_name),
+        this.getWorkflowSnapshot(repo.full_name),
       ]);
 
       const staleIssues = openIssues.filter((issue) => issue.isStale);
@@ -78,6 +99,11 @@ export class GitHubClient {
         pushedAt: repo.pushed_at,
         repoUrl: repo.html_url,
         staleIssues,
+        workflowHealth: workflow.health,
+        latestWorkflowName: workflow.latestWorkflowName,
+        latestWorkflowRunUrl: workflow.latestWorkflowRunUrl,
+        latestWorkflowUpdatedAt: workflow.latestWorkflowUpdatedAt,
+        latestFailedRunUrl: workflow.latestFailedRunUrl,
       };
 
       return summary;
@@ -154,6 +180,44 @@ export class GitHubClient {
     return response.data.length;
   }
 
+  private async getWorkflowSnapshot(fullName: string): Promise<WorkflowSnapshot> {
+    try {
+      const response = await this.requestJson<RestWorkflowRunsResponse>(
+        `/repos/${fullName}/actions/runs?per_page=10&page=1`,
+      );
+
+      const runs = response.data.workflow_runs ?? [];
+      const latest = runs[0] ?? null;
+      const latestFailed = runs.find((run) => isFailingConclusion(run.conclusion)) ?? null;
+
+      if (!latest) {
+        return emptyWorkflowSnapshot();
+      }
+
+      return {
+        health: classifyWorkflowRunHealth(latest.status, latest.conclusion),
+        latestWorkflowName: latest.name,
+        latestWorkflowRunUrl: latest.html_url,
+        latestWorkflowUpdatedAt: latest.updated_at,
+        latestFailedRunUrl: latestFailed?.html_url ?? null,
+      };
+    } catch (error) {
+      if (error instanceof GitHubApiError) {
+        const message = error.message.toLowerCase();
+        const actionsUnavailable =
+          error.status === 404 ||
+          error.status === 409 ||
+          (error.status === 403 && message.includes("resource not accessible"));
+
+        if (actionsUnavailable) {
+          return emptyWorkflowSnapshot();
+        }
+      }
+
+      throw error;
+    }
+  }
+
   private async requestJson<T>(path: string): Promise<JsonResponse<T>> {
     const url = `${API_BASE}${path}`;
     const response = await fetch(url, {
@@ -202,6 +266,51 @@ export class GitHubClient {
     const data = (await response.json()) as T;
     return { data, headers: response.headers };
   }
+}
+
+function emptyWorkflowSnapshot(): WorkflowSnapshot {
+  return {
+    health: "unknown",
+    latestWorkflowName: null,
+    latestWorkflowRunUrl: null,
+    latestWorkflowUpdatedAt: null,
+    latestFailedRunUrl: null,
+  };
+}
+
+function classifyWorkflowRunHealth(status: string, conclusion: string | null): WorkflowHealth {
+  if (status && status !== "completed") {
+    return "pending";
+  }
+
+  if (!conclusion) {
+    return "unknown";
+  }
+
+  if (conclusion === "success") {
+    return "passing";
+  }
+
+  if (isFailingConclusion(conclusion)) {
+    return "failing";
+  }
+
+  return "unknown";
+}
+
+function isFailingConclusion(conclusion: string | null): boolean {
+  if (!conclusion) {
+    return false;
+  }
+
+  return [
+    "failure",
+    "timed_out",
+    "cancelled",
+    "action_required",
+    "startup_failure",
+    "stale",
+  ].includes(conclusion);
 }
 
 function parseLastPage(linkHeader: string | null): number | null {

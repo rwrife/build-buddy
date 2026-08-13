@@ -24,6 +24,8 @@ export interface IssueSummary {
   isStale: boolean;
 }
 
+export type WorkflowHealth = "passing" | "failing" | "pending" | "unknown";
+
 export interface RepoSummary {
   name: string;
   fullName: string;
@@ -37,6 +39,11 @@ export interface RepoSummary {
   pushedAt: string;
   repoUrl: string;
   staleIssues: IssueSummary[];
+  workflowHealth: WorkflowHealth;
+  latestWorkflowName: string | null;
+  latestWorkflowRunUrl: string | null;
+  latestWorkflowUpdatedAt: string | null;
+  latestFailedRunUrl: string | null;
 }
 
 export interface PortfolioData {
