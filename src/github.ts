@@ -41,6 +41,7 @@ interface RestWorkflowRunsResponse {
 
 interface WorkflowSnapshot {
   health: WorkflowHealth;
+  healthMessage: string | null;
   latestWorkflowName: string | null;
   latestWorkflowRunUrl: string | null;
   latestWorkflowUpdatedAt: string | null;
@@ -100,6 +101,7 @@ export class GitHubClient {
         repoUrl: repo.html_url,
         staleIssues,
         workflowHealth: workflow.health,
+        workflowHealthMessage: workflow.healthMessage,
         latestWorkflowName: workflow.latestWorkflowName,
         latestWorkflowRunUrl: workflow.latestWorkflowRunUrl,
         latestWorkflowUpdatedAt: workflow.latestWorkflowUpdatedAt,
@@ -191,11 +193,12 @@ export class GitHubClient {
       const latestFailed = runs.find((run) => isFailingConclusion(run.conclusion)) ?? null;
 
       if (!latest) {
-        return emptyWorkflowSnapshot();
+        return emptyWorkflowSnapshot("No workflow runs found.");
       }
 
       return {
         health: classifyWorkflowRunHealth(latest.status, latest.conclusion),
+        healthMessage: null,
         latestWorkflowName: latest.name,
         latestWorkflowRunUrl: latest.html_url,
         latestWorkflowUpdatedAt: latest.updated_at,
@@ -210,11 +213,23 @@ export class GitHubClient {
           (error.status === 403 && message.includes("resource not accessible"));
 
         if (actionsUnavailable) {
-          return emptyWorkflowSnapshot();
+          return emptyWorkflowSnapshot("GitHub Actions is unavailable for this repository.");
         }
+
+        if (error.status === 403 && error.rateLimitResetAt) {
+          return emptyWorkflowSnapshot(
+            `Rate limited while reading workflow data (resets ${error.rateLimitResetAt}).`,
+          );
+        }
+
+        if (error.status === 401) {
+          return emptyWorkflowSnapshot("Token is unauthorized for workflow data.");
+        }
+
+        return emptyWorkflowSnapshot(error.message);
       }
 
-      throw error;
+      return emptyWorkflowSnapshot(String(error));
     }
   }
 
@@ -268,9 +283,10 @@ export class GitHubClient {
   }
 }
 
-function emptyWorkflowSnapshot(): WorkflowSnapshot {
+function emptyWorkflowSnapshot(message: string | null = null): WorkflowSnapshot {
   return {
     health: "unknown",
+    healthMessage: message,
     latestWorkflowName: null,
     latestWorkflowRunUrl: null,
     latestWorkflowUpdatedAt: null,

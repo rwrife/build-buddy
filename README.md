@@ -36,6 +36,20 @@ This branch adds an Electron desktop utility that helps answer:
 - Sorting (stale count, open issue count, last push asc/desc)
 - Settings persistence (token, stale threshold, filters, refresh interval)
 - Manual refresh + optional auto-refresh interval
+- Watched-repo mood line (happy/sad/working/unknown) derived from latest Actions run
+- Graceful workflow-state fallback for no-runs / unavailable / rate-limited repos
+
+### Configure the GitHub source mood (Issue #6 increment)
+
+1. Enter a GitHub PAT and click **Refresh**.
+2. Set **Watched repo (owner/name)**, e.g. `rwrife/build-buddy`.
+3. The app maps latest Actions state to mood:
+   - `success` → `happy`
+   - failing conclusions (`failure`, `timed_out`, `cancelled`, …) → `sad`
+   - non-completed runs (`queued`, `in_progress`, …) → `working`
+   - no runs / unavailable data → `unknown`
+
+The watched-repo mood line updates on each refresh (manual or auto-refresh).
 
 ### Run locally
 

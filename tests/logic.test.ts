@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { applyRepoFiltersAndSort, isIssueStale } from "../src/shared/logic";
+import {
+  applyRepoFiltersAndSort,
+  isIssueStale,
+  mapWorkflowHealthToMood,
+} from "../src/shared/logic";
 import { RepoSummary } from "../src/shared/types";
 
 const repos: RepoSummary[] = [
@@ -19,6 +23,7 @@ const repos: RepoSummary[] = [
     repoUrl: "https://github.com/org/alpha",
     staleIssues: [],
     workflowHealth: "passing",
+    workflowHealthMessage: null,
     latestWorkflowName: null,
     latestWorkflowRunUrl: null,
     latestWorkflowUpdatedAt: null,
@@ -38,6 +43,7 @@ const repos: RepoSummary[] = [
     repoUrl: "https://github.com/org/beta",
     staleIssues: [],
     workflowHealth: "unknown",
+    workflowHealthMessage: null,
     latestWorkflowName: null,
     latestWorkflowRunUrl: null,
     latestWorkflowUpdatedAt: null,
@@ -57,6 +63,7 @@ const repos: RepoSummary[] = [
     repoUrl: "https://github.com/org/gamma",
     staleIssues: [],
     workflowHealth: "failing",
+    workflowHealthMessage: null,
     latestWorkflowName: null,
     latestWorkflowRunUrl: null,
     latestWorkflowUpdatedAt: null,
@@ -96,4 +103,11 @@ test("applyRepoFiltersAndSort sorts by open issues desc", () => {
     filtered.map((repo) => repo.name),
     ["gamma", "alpha", "beta"],
   );
+});
+
+test("mapWorkflowHealthToMood maps CI health to pet mood", () => {
+  assert.equal(mapWorkflowHealthToMood("passing"), "happy");
+  assert.equal(mapWorkflowHealthToMood("failing"), "sad");
+  assert.equal(mapWorkflowHealthToMood("pending"), "working");
+  assert.equal(mapWorkflowHealthToMood("unknown"), "unknown");
 });

@@ -1,4 +1,4 @@
-import { AppSettings, RepoSummary } from "./types";
+import { AppSettings, RepoSummary, WorkflowHealth } from "./types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -57,6 +57,23 @@ export function applyRepoFiltersAndSort(
   });
 
   return filtered;
+}
+
+export function mapWorkflowHealthToMood(health: WorkflowHealth):
+  | "happy"
+  | "sad"
+  | "working"
+  | "unknown" {
+  switch (health) {
+    case "passing":
+      return "happy";
+    case "failing":
+      return "sad";
+    case "pending":
+      return "working";
+    default:
+      return "unknown";
+  }
 }
 
 function dateToEpoch(value: string): number {

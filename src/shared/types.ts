@@ -8,6 +8,7 @@ export type SortBy =
 
 export interface AppSettings {
   token: string;
+  watchedRepo: string;
   staleDays: number;
   visibilityFilter: VisibilityFilter;
   hasOpenIssuesOnly: boolean;
@@ -40,6 +41,7 @@ export interface RepoSummary {
   repoUrl: string;
   staleIssues: IssueSummary[];
   workflowHealth: WorkflowHealth;
+  workflowHealthMessage: string | null;
   latestWorkflowName: string | null;
   latestWorkflowRunUrl: string | null;
   latestWorkflowUpdatedAt: string | null;
