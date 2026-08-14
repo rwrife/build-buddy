@@ -4,6 +4,7 @@ type WorkflowHealth = "passing" | "failing" | "pending" | "unknown";
 
 interface AppSettings {
   token: string;
+  watchedRepo: string;
   staleDays: number;
   visibilityFilter: VisibilityFilter;
   hasOpenIssuesOnly: boolean;
@@ -34,6 +35,7 @@ interface RepoSummary {
   repoUrl: string;
   staleIssues: IssueSummary[];
   workflowHealth: WorkflowHealth;
+  workflowHealthMessage: string | null;
   latestWorkflowName: string | null;
   latestWorkflowRunUrl: string | null;
   latestWorkflowUpdatedAt: string | null;
@@ -57,6 +59,7 @@ const state: {
 };
 
 const tokenInput = document.getElementById("token") as HTMLInputElement;
+const watchedRepoInput = document.getElementById("watchedRepo") as HTMLInputElement;
 const staleDaysInput = document.getElementById("staleDays") as HTMLInputElement;
 const visibilityFilterSelect = document.getElementById("visibilityFilter") as HTMLSelectElement;
 const hasOpenIssuesOnlyCheckbox = document.getElementById(
@@ -72,6 +75,7 @@ const autoRefreshMinutesInput = document.getElementById(
 
 const statusBanner = document.getElementById("statusBanner") as HTMLDivElement;
 const metricsText = document.getElementById("metricsText") as HTMLDivElement;
+const watchStatusText = document.getElementById("watchStatusText") as HTMLDivElement;
 const refreshButton = document.getElementById("refreshButton") as HTMLButtonElement;
 const saveSettingsButton = document.getElementById("saveSettingsButton") as HTMLButtonElement;
 const repoTableBody = document.getElementById("repoTableBody") as HTMLTableSectionElement;
@@ -79,6 +83,7 @@ const issueHealthBody = document.getElementById("issueHealthBody") as HTMLTableS
 
 const DEFAULT_SETTINGS: AppSettings = {
   token: "",
+  watchedRepo: "",
   staleDays: 30,
   visibilityFilter: "all",
   hasOpenIssuesOnly: false,
@@ -134,8 +139,10 @@ function wireEvents(): void {
     });
   });
 
-  tokenInput.addEventListener("change", () => {
-    void persistCurrentSettings();
+  [tokenInput, watchedRepoInput].forEach((el) => {
+    el.addEventListener("change", () => {
+      void persistCurrentSettings();
+    });
   });
 
   document.addEventListener("click", (event) => {
@@ -200,6 +207,7 @@ function render(): void {
 
   renderRepoInventory(repos);
   renderIssueHealth(repos);
+  renderWatchedRepoMood(repos, settings.watchedRepo);
 
   const staleTotal = repos.reduce((sum, repo) => sum + repo.staleIssueCount, 0);
   const issueTotal = repos.reduce((sum, repo) => sum + repo.openIssueCount, 0);
@@ -232,7 +240,7 @@ function renderRepoInventory(repos: RepoSummary[]): void {
     row.appendChild(cellWithText(repo.defaultBranch));
     row.appendChild(cellWithText(String(repo.openIssueCount)));
     row.appendChild(cellWithText(String(repo.openPrCount)));
-    row.appendChild(cellWithWorkflowHealth(repo.workflowHealth));
+    row.appendChild(cellWithWorkflowHealth(repo.workflowHealth, repo.workflowHealthMessage));
     row.appendChild(cellWithLatestFailedRun(repo.latestFailedRunUrl));
     row.appendChild(cellWithText(formatDate(repo.pushedAt)));
 
@@ -298,6 +306,50 @@ function renderIssueHealth(repos: RepoSummary[]): void {
   }
 }
 
+function renderWatchedRepoMood(repos: RepoSummary[], watchedRepoRaw: string): void {
+  const watchedRepo = normalizeRepoFullName(watchedRepoRaw);
+
+  if (!watchedRepo) {
+    watchStatusText.textContent =
+      "Watched repo mood: set owner/repo to enable GitHub source monitoring.";
+    return;
+  }
+
+  const selected = repos.find((repo) => repo.fullName.toLowerCase() === watchedRepo.toLowerCase());
+  if (!selected) {
+    watchStatusText.textContent = `Watched repo ${watchedRepo} was not found in the loaded portfolio.`;
+    return;
+  }
+
+  const mood = mapWorkflowHealthToMood(selected.workflowHealth);
+  const parts = [`Watched repo ${selected.fullName}: mood ${mood}`];
+
+  if (selected.latestWorkflowName) {
+    parts.push(`latest workflow: ${selected.latestWorkflowName}`);
+  }
+  if (selected.latestWorkflowUpdatedAt) {
+    parts.push(`updated ${formatTimestamp(selected.latestWorkflowUpdatedAt)}`);
+  }
+  if (selected.workflowHealthMessage) {
+    parts.push(selected.workflowHealthMessage);
+  }
+
+  watchStatusText.textContent = parts.join(" · ");
+}
+
+function mapWorkflowHealthToMood(health: WorkflowHealth): "happy" | "sad" | "working" | "unknown" {
+  switch (health) {
+    case "passing":
+      return "happy";
+    case "failing":
+      return "sad";
+    case "pending":
+      return "working";
+    default:
+      return "unknown";
+  }
+}
+
 function openButton(label: string, url: string): HTMLButtonElement {
   const button = document.createElement("button");
   button.type = "button";
@@ -322,17 +374,38 @@ function cellWithBadge(text: string, tone: "ok" | "warn" | "muted" | "error"): H
   return cell;
 }
 
-function cellWithWorkflowHealth(health: WorkflowHealth): HTMLTableCellElement {
+function cellWithWorkflowHealth(
+  health: WorkflowHealth,
+  message: string | null,
+): HTMLTableCellElement {
+  const cell = document.createElement("td");
+  const badge = document.createElement("span");
+
   switch (health) {
     case "passing":
-      return cellWithBadge("passing", "ok");
+      badge.textContent = "passing";
+      badge.className = "badge badge-ok";
+      break;
     case "failing":
-      return cellWithBadge("failing", "error");
+      badge.textContent = "failing";
+      badge.className = "badge badge-error";
+      break;
     case "pending":
-      return cellWithBadge("pending", "warn");
+      badge.textContent = "pending";
+      badge.className = "badge badge-warn";
+      break;
     default:
-      return cellWithBadge("unknown", "muted");
+      badge.textContent = "unknown";
+      badge.className = "badge badge-muted";
+      break;
   }
+
+  if (message) {
+    badge.title = message;
+  }
+
+  cell.appendChild(badge);
+  return cell;
 }
 
 function cellWithLatestFailedRun(url: string | null): HTMLTableCellElement {
@@ -353,6 +426,7 @@ function setStatus(message: string, tone: "info" | "success" | "error"): void {
 function readSettingsFromForm(): AppSettings {
   return {
     token: tokenInput.value.trim(),
+    watchedRepo: normalizeRepoFullName(watchedRepoInput.value),
     staleDays: toInt(staleDaysInput.value, DEFAULT_SETTINGS.staleDays),
     visibilityFilter: toVisibilityFilter(visibilityFilterSelect.value),
     hasOpenIssuesOnly: hasOpenIssuesOnlyCheckbox.checked,
@@ -364,6 +438,7 @@ function readSettingsFromForm(): AppSettings {
 
 function applySettingsToForm(settings: AppSettings): void {
   tokenInput.value = settings.token ?? "";
+  watchedRepoInput.value = settings.watchedRepo ?? "";
   staleDaysInput.value = String(settings.staleDays ?? DEFAULT_SETTINGS.staleDays);
   visibilityFilterSelect.value = settings.visibilityFilter ?? DEFAULT_SETTINGS.visibilityFilter;
   hasOpenIssuesOnlyCheckbox.checked = Boolean(settings.hasOpenIssuesOnly);
@@ -422,6 +497,14 @@ function applyFiltersAndSort(repos: RepoSummary[], settings: AppSettings): RepoS
   });
 
   return filtered;
+}
+
+function normalizeRepoFullName(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^https?:\/\/github\.com\//i, "")
+    .replace(/^github\.com\//i, "")
+    .replace(/\/+$/, "");
 }
 
 function toInt(raw: string, fallback: number): number {

@@ -4,6 +4,7 @@ import { AppSettings } from "./shared/types";
 
 export const DEFAULT_SETTINGS: AppSettings = {
   token: "",
+  watchedRepo: "",
   staleDays: 30,
   visibilityFilter: "all",
   hasOpenIssuesOnly: false,
@@ -55,6 +56,7 @@ function normalizeSettings(input: unknown): AppSettings {
 
   return {
     token: String(value.token ?? DEFAULT_SETTINGS.token),
+    watchedRepo: String(value.watchedRepo ?? DEFAULT_SETTINGS.watchedRepo).trim(),
     staleDays: clampInt(value.staleDays, 1, 3650, DEFAULT_SETTINGS.staleDays),
     visibilityFilter,
     hasOpenIssuesOnly: Boolean(value.hasOpenIssuesOnly),
