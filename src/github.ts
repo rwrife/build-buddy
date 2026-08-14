@@ -28,6 +28,7 @@ interface RestIssue {
 }
 
 interface RestWorkflowRun {
+  id: number;
   name: string;
   html_url: string;
   status: string;
@@ -39,6 +40,17 @@ interface RestWorkflowRunsResponse {
   workflow_runs: RestWorkflowRun[];
 }
 
+interface RestWorkflowJob {
+  name: string;
+  status: string;
+  conclusion: string | null;
+  started_at: string | null;
+}
+
+interface RestWorkflowJobsResponse {
+  jobs: RestWorkflowJob[];
+}
+
 interface WorkflowSnapshot {
   health: WorkflowHealth;
   healthMessage: string | null;
@@ -46,6 +58,7 @@ interface WorkflowSnapshot {
   latestWorkflowRunUrl: string | null;
   latestWorkflowUpdatedAt: string | null;
   latestFailedRunUrl: string | null;
+  latestFailedJobName: string | null;
 }
 
 interface JsonResponse<T> {
@@ -106,6 +119,7 @@ export class GitHubClient {
         latestWorkflowRunUrl: workflow.latestWorkflowRunUrl,
         latestWorkflowUpdatedAt: workflow.latestWorkflowUpdatedAt,
         latestFailedRunUrl: workflow.latestFailedRunUrl,
+        latestFailedJobName: workflow.latestFailedJobName,
       };
 
       return summary;
@@ -196,6 +210,10 @@ export class GitHubClient {
         return emptyWorkflowSnapshot("No workflow runs found.");
       }
 
+      const latestFailedJobName = latestFailed
+        ? await this.getLatestFailedJobName(fullName, latestFailed.id)
+        : null;
+
       return {
         health: classifyWorkflowRunHealth(latest.status, latest.conclusion),
         healthMessage: null,
@@ -203,6 +221,7 @@ export class GitHubClient {
         latestWorkflowRunUrl: latest.html_url,
         latestWorkflowUpdatedAt: latest.updated_at,
         latestFailedRunUrl: latestFailed?.html_url ?? null,
+        latestFailedJobName,
       };
     } catch (error) {
       if (error instanceof GitHubApiError) {
@@ -230,6 +249,27 @@ export class GitHubClient {
       }
 
       return emptyWorkflowSnapshot(String(error));
+    }
+  }
+
+  private async getLatestFailedJobName(fullName: string, runId: number): Promise<string | null> {
+    try {
+      const response = await this.requestJson<RestWorkflowJobsResponse>(
+        `/repos/${fullName}/actions/runs/${runId}/jobs?per_page=${PER_PAGE}&page=1`,
+      );
+
+      const failedJobs = (response.data.jobs ?? []).filter((job) =>
+        isFailingConclusion(job.conclusion),
+      );
+
+      if (failedJobs.length === 0) {
+        return null;
+      }
+
+      failedJobs.sort((a, b) => dateToEpoch(b.started_at) - dateToEpoch(a.started_at));
+      return failedJobs[0].name;
+    } catch {
+      return null;
     }
   }
 
@@ -291,6 +331,7 @@ function emptyWorkflowSnapshot(message: string | null = null): WorkflowSnapshot 
     latestWorkflowRunUrl: null,
     latestWorkflowUpdatedAt: null,
     latestFailedRunUrl: null,
+    latestFailedJobName: null,
   };
 }
 
@@ -341,6 +382,15 @@ function parseLastPage(linkHeader: string | null): number | null {
 
   const value = Number(match[1]);
   return Number.isFinite(value) ? value : null;
+}
+
+function dateToEpoch(value: string | null): number {
+  if (!value) {
+    return 0;
+  }
+
+  const n = new Date(value).getTime();
+  return Number.isFinite(n) ? n : 0;
 }
 
 async function mapWithConcurrency<T, R>(

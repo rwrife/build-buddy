@@ -76,6 +76,28 @@ export function mapWorkflowHealthToMood(health: WorkflowHealth):
   }
 }
 
+export function formatFailureBubbleMessage(
+  repo: Pick<RepoSummary, "workflowHealth" | "latestFailedJobName" | "latestWorkflowName">,
+): string | null {
+  if (repo.workflowHealth !== "failing") {
+    return null;
+  }
+
+  if (repo.latestFailedJobName && repo.latestWorkflowName) {
+    return `Build failed in job “${repo.latestFailedJobName}” (${repo.latestWorkflowName}).`;
+  }
+
+  if (repo.latestFailedJobName) {
+    return `Build failed in job “${repo.latestFailedJobName}”.`;
+  }
+
+  if (repo.latestWorkflowName) {
+    return `Build failed in workflow “${repo.latestWorkflowName}”.`;
+  }
+
+  return "Build failed — open the latest failing run for details.";
+}
+
 function dateToEpoch(value: string): number {
   const n = new Date(value).getTime();
   return Number.isFinite(n) ? n : 0;

@@ -1,3 +1,5 @@
+import { formatFailureBubbleMessage, mapWorkflowHealthToMood } from "./shared/logic";
+
 type VisibilityFilter = "all" | "public" | "private";
 type SortBy = "stale_desc" | "open_issues_desc" | "last_pushed_desc" | "last_pushed_asc";
 type WorkflowHealth = "passing" | "failing" | "pending" | "unknown";
@@ -40,6 +42,7 @@ interface RepoSummary {
   latestWorkflowRunUrl: string | null;
   latestWorkflowUpdatedAt: string | null;
   latestFailedRunUrl: string | null;
+  latestFailedJobName: string | null;
 }
 
 interface PortfolioData {
@@ -52,10 +55,14 @@ const state: {
   allRepos: RepoSummary[];
   lastFetchedAt: string | null;
   timer: ReturnType<typeof setInterval> | null;
+  failureBubbleTimer: ReturnType<typeof setTimeout> | null;
+  dismissedFailureKey: string | null;
 } = {
   allRepos: [],
   lastFetchedAt: null,
   timer: null,
+  failureBubbleTimer: null,
+  dismissedFailureKey: null,
 };
 
 const tokenInput = document.getElementById("token") as HTMLInputElement;
@@ -76,6 +83,10 @@ const autoRefreshMinutesInput = document.getElementById(
 const statusBanner = document.getElementById("statusBanner") as HTMLDivElement;
 const metricsText = document.getElementById("metricsText") as HTMLDivElement;
 const watchStatusText = document.getElementById("watchStatusText") as HTMLDivElement;
+const failureBubble = document.getElementById("failureBubble") as HTMLDivElement;
+const failureBubbleText = document.getElementById("failureBubbleText") as HTMLDivElement;
+const failureBubbleOpenButton = document.getElementById("failureBubbleOpen") as HTMLButtonElement;
+const failureBubbleDismissButton = document.getElementById("failureBubbleDismiss") as HTMLButtonElement;
 const refreshButton = document.getElementById("refreshButton") as HTMLButtonElement;
 const saveSettingsButton = document.getElementById("saveSettingsButton") as HTMLButtonElement;
 const repoTableBody = document.getElementById("repoTableBody") as HTMLTableSectionElement;
@@ -118,6 +129,14 @@ function wireEvents(): void {
 
   saveSettingsButton.addEventListener("click", () => {
     void persistCurrentSettings();
+  });
+
+  failureBubbleDismissButton.addEventListener("click", () => {
+    const key = failureBubble.getAttribute("data-failure-key");
+    if (key) {
+      state.dismissedFailureKey = key;
+    }
+    hideFailureBubble();
   });
 
   [
@@ -312,12 +331,14 @@ function renderWatchedRepoMood(repos: RepoSummary[], watchedRepoRaw: string): vo
   if (!watchedRepo) {
     watchStatusText.textContent =
       "Watched repo mood: set owner/repo to enable GitHub source monitoring.";
+    hideFailureBubble();
     return;
   }
 
   const selected = repos.find((repo) => repo.fullName.toLowerCase() === watchedRepo.toLowerCase());
   if (!selected) {
     watchStatusText.textContent = `Watched repo ${watchedRepo} was not found in the loaded portfolio.`;
+    hideFailureBubble();
     return;
   }
 
@@ -335,19 +356,53 @@ function renderWatchedRepoMood(repos: RepoSummary[], watchedRepoRaw: string): vo
   }
 
   watchStatusText.textContent = parts.join(" · ");
+  renderFailureBubble(selected);
 }
 
-function mapWorkflowHealthToMood(health: WorkflowHealth): "happy" | "sad" | "working" | "unknown" {
-  switch (health) {
-    case "passing":
-      return "happy";
-    case "failing":
-      return "sad";
-    case "pending":
-      return "working";
-    default:
-      return "unknown";
+function renderFailureBubble(repo: RepoSummary): void {
+  const failureKey = `${repo.fullName}|${repo.latestFailedRunUrl ?? "no-run"}`;
+
+  if (state.dismissedFailureKey && state.dismissedFailureKey !== failureKey) {
+    state.dismissedFailureKey = null;
   }
+
+  const message = formatFailureBubbleMessage(repo);
+  if (!message || state.dismissedFailureKey === failureKey) {
+    hideFailureBubble();
+    return;
+  }
+
+  failureBubbleText.textContent = message;
+  failureBubble.classList.remove("is-hidden");
+  failureBubble.setAttribute("data-failure-key", failureKey);
+
+  if (repo.latestFailedRunUrl) {
+    failureBubbleOpenButton.classList.remove("is-hidden");
+    failureBubbleOpenButton.setAttribute("data-url", repo.latestFailedRunUrl);
+  } else {
+    failureBubbleOpenButton.classList.add("is-hidden");
+    failureBubbleOpenButton.removeAttribute("data-url");
+  }
+
+  if (state.failureBubbleTimer) {
+    clearTimeout(state.failureBubbleTimer);
+  }
+
+  state.failureBubbleTimer = setTimeout(() => {
+    state.dismissedFailureKey = failureKey;
+    hideFailureBubble();
+  }, 12000);
+}
+
+function hideFailureBubble(): void {
+  if (state.failureBubbleTimer) {
+    clearTimeout(state.failureBubbleTimer);
+    state.failureBubbleTimer = null;
+  }
+
+  failureBubble.classList.add("is-hidden");
+  failureBubble.removeAttribute("data-failure-key");
+  failureBubbleOpenButton.removeAttribute("data-url");
 }
 
 function openButton(label: string, url: string): HTMLButtonElement {

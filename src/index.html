@@ -78,6 +78,13 @@
       <div id="watchStatusText" class="metrics-text">
         Watched repo mood: set owner/repo to enable GitHub source monitoring.
       </div>
+      <div id="failureBubble" class="failure-bubble is-hidden" role="status" aria-live="polite">
+        <div id="failureBubbleText" class="failure-bubble-text"></div>
+        <div class="failure-bubble-actions">
+          <button id="failureBubbleOpen" type="button" class="link-button">Open failing run</button>
+          <button id="failureBubbleDismiss" type="button">Dismiss</button>
+        </div>
+      </div>
     </section>
 
     <section class="panel">

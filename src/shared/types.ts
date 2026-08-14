@@ -46,6 +46,7 @@ export interface RepoSummary {
   latestWorkflowRunUrl: string | null;
   latestWorkflowUpdatedAt: string | null;
   latestFailedRunUrl: string | null;
+  latestFailedJobName: string | null;
 }
 
 export interface PortfolioData {
