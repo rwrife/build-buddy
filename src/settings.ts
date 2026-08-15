@@ -11,6 +11,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   hasStaleIssuesOnly: false,
   sortBy: "stale_desc",
   autoRefreshMinutes: 0,
+  uiPaused: false,
+  windowBounds: null,
 };
 
 export async function loadSettings(filePath: string): Promise<AppSettings> {
@@ -68,6 +70,31 @@ function normalizeSettings(input: unknown): AppSettings {
       1440,
       DEFAULT_SETTINGS.autoRefreshMinutes,
     ),
+    uiPaused: Boolean(value.uiPaused),
+    windowBounds: normalizeWindowBounds(value.windowBounds),
+  };
+}
+
+function normalizeWindowBounds(value: unknown): AppSettings["windowBounds"] {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const maybeBounds = value as Record<string, unknown>;
+  const x = Number(maybeBounds.x);
+  const y = Number(maybeBounds.y);
+  const width = Number(maybeBounds.width);
+  const height = Number(maybeBounds.height);
+
+  if (![x, y, width, height].every(Number.isFinite)) {
+    return null;
+  }
+
+  return {
+    x: Math.round(x),
+    y: Math.round(y),
+    width: Math.max(980, Math.round(width)),
+    height: Math.max(720, Math.round(height)),
   };
 }
 
