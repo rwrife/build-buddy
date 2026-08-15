@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   applyRepoFiltersAndSort,
+  formatFailureBubbleMessage,
   isIssueStale,
   mapWorkflowHealthToMood,
 } from "../src/shared/logic";
@@ -28,6 +29,7 @@ const repos: RepoSummary[] = [
     latestWorkflowRunUrl: null,
     latestWorkflowUpdatedAt: null,
     latestFailedRunUrl: null,
+    latestFailedJobName: null,
   },
   {
     name: "beta",
@@ -48,6 +50,7 @@ const repos: RepoSummary[] = [
     latestWorkflowRunUrl: null,
     latestWorkflowUpdatedAt: null,
     latestFailedRunUrl: null,
+    latestFailedJobName: null,
   },
   {
     name: "gamma",
@@ -68,6 +71,7 @@ const repos: RepoSummary[] = [
     latestWorkflowRunUrl: null,
     latestWorkflowUpdatedAt: null,
     latestFailedRunUrl: null,
+    latestFailedJobName: null,
   },
 ];
 
@@ -110,4 +114,33 @@ test("mapWorkflowHealthToMood maps CI health to pet mood", () => {
   assert.equal(mapWorkflowHealthToMood("failing"), "sad");
   assert.equal(mapWorkflowHealthToMood("pending"), "working");
   assert.equal(mapWorkflowHealthToMood("unknown"), "unknown");
+});
+
+test("formatFailureBubbleMessage prefers failing job details", () => {
+  assert.equal(
+    formatFailureBubbleMessage({
+      workflowHealth: "failing",
+      latestFailedJobName: "unit-tests",
+      latestWorkflowName: "CI",
+    }),
+    "Build failed in job “unit-tests” (CI).",
+  );
+
+  assert.equal(
+    formatFailureBubbleMessage({
+      workflowHealth: "failing",
+      latestFailedJobName: null,
+      latestWorkflowName: "Nightly",
+    }),
+    "Build failed in workflow “Nightly”.",
+  );
+
+  assert.equal(
+    formatFailureBubbleMessage({
+      workflowHealth: "passing",
+      latestFailedJobName: "unit-tests",
+      latestWorkflowName: "CI",
+    }),
+    null,
+  );
 });

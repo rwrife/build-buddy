@@ -104,6 +104,31 @@ button.primary {
   margin-bottom: 12px;
 }
 
+.failure-bubble {
+  max-width: 760px;
+  margin-bottom: 14px;
+  background: #3f1d1d;
+  border: 1px solid #ef4444;
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: #fee2e2;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.failure-bubble-text {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.failure-bubble-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
