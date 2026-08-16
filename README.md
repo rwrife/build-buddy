@@ -37,6 +37,7 @@ This branch adds an Electron desktop utility that helps answer:
 - Settings persistence (token, stale threshold, filters, refresh interval)
 - Manual refresh + optional auto-refresh interval
 - Watched-repo mood line (happy/sad/working/unknown) derived from latest Actions run
+- Animated buddy mood avatar that reflects watched-repo health (`happy`, `sad`, `working`, `unknown`)
 - Graceful workflow-state fallback for no-runs / unavailable / rate-limited repos
 
 ### Configure the GitHub source mood (Issue #6 increment)
