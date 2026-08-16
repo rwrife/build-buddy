@@ -3,6 +3,7 @@ import { formatFailureBubbleMessage, mapWorkflowHealthToMood } from "./shared/lo
 type VisibilityFilter = "all" | "public" | "private";
 type SortBy = "stale_desc" | "open_issues_desc" | "last_pushed_desc" | "last_pushed_asc";
 type WorkflowHealth = "passing" | "failing" | "pending" | "unknown";
+type LifecycleCommand = "run-now" | "pause" | "resume";
 
 interface AppSettings {
   token: string;
@@ -13,6 +14,7 @@ interface AppSettings {
   hasStaleIssuesOnly: boolean;
   sortBy: SortBy;
   autoRefreshMinutes: number;
+  uiPaused: boolean;
 }
 
 interface IssueSummary {
@@ -57,12 +59,14 @@ const state: {
   timer: ReturnType<typeof setInterval> | null;
   failureBubbleTimer: ReturnType<typeof setTimeout> | null;
   dismissedFailureKey: string | null;
+  isPaused: boolean;
 } = {
   allRepos: [],
   lastFetchedAt: null,
   timer: null,
   failureBubbleTimer: null,
   dismissedFailureKey: null,
+  isPaused: false,
 };
 
 const tokenInput = document.getElementById("token") as HTMLInputElement;
@@ -101,6 +105,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   hasStaleIssuesOnly: false,
   sortBy: "stale_desc",
   autoRefreshMinutes: 0,
+  uiPaused: false,
 };
 
 void bootstrap();
@@ -111,8 +116,18 @@ async function bootstrap(): Promise<void> {
   try {
     const saved = await window.buildBuddyApi.getSettings();
     applySettingsToForm(saved);
-    setStatus("Ready. Provide a GitHub token and click Refresh.", "info");
-    configureAutoRefresh(saved.autoRefreshMinutes);
+    state.isPaused = Boolean(saved.uiPaused);
+    configureAutoRefresh(saved.autoRefreshMinutes, state.isPaused);
+    setStatus(
+      state.isPaused
+        ? "Auto-refresh is paused. Right-click the window and choose Resume, or click Refresh manually."
+        : "Ready. Provide a GitHub token and click Refresh.",
+      "info",
+    );
+
+    window.buildBuddyApi.onLifecycleCommand((command: LifecycleCommand) => {
+      void handleLifecycleCommand(command);
+    });
 
     if (saved.token) {
       await refreshPortfolio();
@@ -154,7 +169,7 @@ function wireEvents(): void {
   [staleDaysInput, autoRefreshMinutesInput].forEach((el) => {
     el.addEventListener("change", () => {
       void persistCurrentSettings();
-      configureAutoRefresh(readSettingsFromForm().autoRefreshMinutes);
+      configureAutoRefresh(readSettingsFromForm().autoRefreshMinutes, state.isPaused);
     });
   });
 
@@ -176,6 +191,39 @@ function wireEvents(): void {
     }
     void window.buildBuddyApi.openExternal(url);
   });
+}
+
+async function handleLifecycleCommand(command: LifecycleCommand): Promise<void> {
+  if (command === "run-now") {
+    await refreshPortfolio();
+    return;
+  }
+
+  if (command === "pause") {
+    await setPaused(true);
+    return;
+  }
+
+  if (command === "resume") {
+    await setPaused(false);
+  }
+}
+
+async function setPaused(paused: boolean): Promise<void> {
+  if (state.isPaused === paused) {
+    return;
+  }
+
+  state.isPaused = paused;
+  configureAutoRefresh(readSettingsFromForm().autoRefreshMinutes, state.isPaused);
+  await persistCurrentSettings();
+
+  setStatus(
+    paused
+      ? "Auto-refresh paused (manual Refresh still works)."
+      : "Auto-refresh resumed.",
+    "info",
+  );
 }
 
 async function refreshPortfolio(): Promise<void> {
@@ -488,6 +536,7 @@ function readSettingsFromForm(): AppSettings {
     hasStaleIssuesOnly: hasStaleIssuesOnlyCheckbox.checked,
     sortBy: toSortBy(sortBySelect.value),
     autoRefreshMinutes: toInt(autoRefreshMinutesInput.value, DEFAULT_SETTINGS.autoRefreshMinutes),
+    uiPaused: state.isPaused,
   };
 }
 
@@ -502,15 +551,16 @@ function applySettingsToForm(settings: AppSettings): void {
   autoRefreshMinutesInput.value = String(
     settings.autoRefreshMinutes ?? DEFAULT_SETTINGS.autoRefreshMinutes,
   );
+  state.isPaused = Boolean(settings.uiPaused);
 }
 
-function configureAutoRefresh(minutes: number): void {
+function configureAutoRefresh(minutes: number, paused: boolean): void {
   if (state.timer) {
     clearInterval(state.timer);
     state.timer = null;
   }
 
-  if (minutes <= 0) {
+  if (paused || minutes <= 0) {
     return;
   }
 

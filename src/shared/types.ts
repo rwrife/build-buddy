@@ -6,6 +6,13 @@ export type SortBy =
   | "last_pushed_desc"
   | "last_pushed_asc";
 
+export interface WindowBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface AppSettings {
   token: string;
   watchedRepo: string;
@@ -15,6 +22,8 @@ export interface AppSettings {
   hasStaleIssuesOnly: boolean;
   sortBy: SortBy;
   autoRefreshMinutes: number;
+  uiPaused: boolean;
+  windowBounds: WindowBounds | null;
 }
 
 export interface IssueSummary {
