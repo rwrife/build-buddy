@@ -2,16 +2,56 @@
   "name": "build-buddy",
   "version": "0.2.0",
   "description": "Electron GitHub repo manager MVP",
+  "author": "rwrife",
+  "license": "MIT",
+  "desktopName": "build-buddy",
   "main": "dist/src/main.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "npm run build && electron .",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test dist/tests/logic.test.js"
+    "test": "npm run build && node --test dist/tests/logic.test.js",
+    "package": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "electron": "^33.2.1",
+    "electron-builder": "^26.15.3",
     "typescript": "^5.6.3"
+  },
+  "build": {
+    "appId": "com.rwrife.buildbuddy",
+    "productName": "Build Buddy",
+    "artifactName": "build-buddy-${version}-${os}-${arch}.${ext}",
+    "icon": "assets/icon.png",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/src/**/*.js",
+      "src/index.html",
+      "src/styles.css",
+      "package.json"
+    ],
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility",
+      "syncDesktopName": true
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
   }
 }

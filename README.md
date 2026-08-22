@@ -65,6 +65,20 @@ npm run start
 npm test
 ```
 
+### Build an installable desktop package
+
+```bash
+npm install
+npm run dist
+```
+
+The package for your current operating system is written to `release/`. GitHub Actions
+builds the native targets on each platform: AppImage on Linux, DMG on macOS, and NSIS
+installer on Windows. Every workflow run uploads those packages as downloadable artifacts.
+
+Packaged windows use transparent rounded edges. Drag the header to reposition the window;
+right-click anywhere for Run now, Pause/Resume, and Quit.
+
 Settings are persisted to Electron's local `userData` path on your machine.
 
 ## Why
