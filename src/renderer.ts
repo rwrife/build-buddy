@@ -4,6 +4,7 @@ type VisibilityFilter = "all" | "public" | "private";
 type SortBy = "stale_desc" | "open_issues_desc" | "last_pushed_desc" | "last_pushed_asc";
 type WorkflowHealth = "passing" | "failing" | "pending" | "unknown";
 type LifecycleCommand = "run-now" | "pause" | "resume";
+type PetMood = "happy" | "sad" | "working" | "unknown";
 
 interface AppSettings {
   token: string;
@@ -58,15 +59,19 @@ const state: {
   lastFetchedAt: string | null;
   timer: ReturnType<typeof setInterval> | null;
   failureBubbleTimer: ReturnType<typeof setTimeout> | null;
+  petFrameTimer: ReturnType<typeof setInterval> | null;
   dismissedFailureKey: string | null;
   isPaused: boolean;
+  petMood: PetMood;
 } = {
   allRepos: [],
   lastFetchedAt: null,
   timer: null,
   failureBubbleTimer: null,
+  petFrameTimer: null,
   dismissedFailureKey: null,
   isPaused: false,
+  petMood: "unknown",
 };
 
 const tokenInput = document.getElementById("token") as HTMLInputElement;
@@ -87,6 +92,9 @@ const autoRefreshMinutesInput = document.getElementById(
 const statusBanner = document.getElementById("statusBanner") as HTMLDivElement;
 const metricsText = document.getElementById("metricsText") as HTMLDivElement;
 const watchStatusText = document.getElementById("watchStatusText") as HTMLDivElement;
+const buddyAvatar = document.getElementById("buddyAvatar") as HTMLDivElement;
+const buddyFace = document.getElementById("buddyFace") as HTMLSpanElement;
+const buddyMoodText = document.getElementById("buddyMoodText") as HTMLDivElement;
 const failureBubble = document.getElementById("failureBubble") as HTMLDivElement;
 const failureBubbleText = document.getElementById("failureBubbleText") as HTMLDivElement;
 const failureBubbleOpenButton = document.getElementById("failureBubbleOpen") as HTMLButtonElement;
@@ -95,6 +103,13 @@ const refreshButton = document.getElementById("refreshButton") as HTMLButtonElem
 const saveSettingsButton = document.getElementById("saveSettingsButton") as HTMLButtonElement;
 const repoTableBody = document.getElementById("repoTableBody") as HTMLTableSectionElement;
 const issueHealthBody = document.getElementById("issueHealthBody") as HTMLTableSectionElement;
+
+const MOOD_FRAMES: Record<PetMood, string[]> = {
+  happy: ["(＾◡＾)", "(＾ᴗ＾)", "(ᵔ◡ᵔ)"],
+  sad: ["(╥﹏╥)", "(;﹏;)", "(╯︵╰,)"],
+  working: ["(•̀ᴗ•́)و", "(•̀ᴗ•́)ง", "(•̀ᴗ•́)"],
+  unknown: ["(o_o)"],
+};
 
 const DEFAULT_SETTINGS: AppSettings = {
   token: "",
@@ -124,6 +139,7 @@ async function bootstrap(): Promise<void> {
         : "Ready. Provide a GitHub token and click Refresh.",
       "info",
     );
+    setPetMood("unknown", "Waiting for watched-repo health.");
 
     window.buildBuddyApi.onLifecycleCommand((command: LifecycleCommand) => {
       void handleLifecycleCommand(command);
@@ -235,6 +251,7 @@ async function refreshPortfolio(): Promise<void> {
 
   refreshButton.disabled = true;
   refreshButton.textContent = "Refreshing…";
+  setPetMood("working", "Polling GitHub health…");
 
   try {
     setStatus("Validating token…", "info");
@@ -257,6 +274,7 @@ async function refreshPortfolio(): Promise<void> {
     );
   } catch (error) {
     setStatus(errorMessage(error), "error");
+    setPetMood("sad", "Refresh failed.");
   } finally {
     refreshButton.disabled = false;
     refreshButton.textContent = "Refresh";
@@ -379,6 +397,7 @@ function renderWatchedRepoMood(repos: RepoSummary[], watchedRepoRaw: string): vo
   if (!watchedRepo) {
     watchStatusText.textContent =
       "Watched repo mood: set owner/repo to enable GitHub source monitoring.";
+    setPetMood("unknown", "Set owner/repo to watch mood.");
     hideFailureBubble();
     return;
   }
@@ -386,6 +405,7 @@ function renderWatchedRepoMood(repos: RepoSummary[], watchedRepoRaw: string): vo
   const selected = repos.find((repo) => repo.fullName.toLowerCase() === watchedRepo.toLowerCase());
   if (!selected) {
     watchStatusText.textContent = `Watched repo ${watchedRepo} was not found in the loaded portfolio.`;
+    setPetMood("unknown", `${watchedRepo} not found.`);
     hideFailureBubble();
     return;
   }
@@ -404,6 +424,7 @@ function renderWatchedRepoMood(repos: RepoSummary[], watchedRepoRaw: string): vo
   }
 
   watchStatusText.textContent = parts.join(" · ");
+  setPetMood(mood, selected.fullName);
   renderFailureBubble(selected);
 }
 
@@ -451,6 +472,35 @@ function hideFailureBubble(): void {
   failureBubble.classList.add("is-hidden");
   failureBubble.removeAttribute("data-failure-key");
   failureBubbleOpenButton.removeAttribute("data-url");
+}
+
+function setPetMood(mood: PetMood, detail?: string): void {
+  state.petMood = mood;
+
+  if (state.petFrameTimer) {
+    clearInterval(state.petFrameTimer);
+    state.petFrameTimer = null;
+  }
+
+  buddyAvatar.classList.remove("mood-happy", "mood-sad", "mood-working", "mood-unknown");
+  buddyAvatar.classList.add(`mood-${mood}`);
+
+  const frames = MOOD_FRAMES[mood];
+  let frameIndex = 0;
+
+  const renderFrame = (): void => {
+    buddyFace.textContent = frames[frameIndex % frames.length];
+    frameIndex += 1;
+  };
+
+  renderFrame();
+
+  if (frames.length > 1) {
+    const intervalMs = mood === "working" ? 280 : 520;
+    state.petFrameTimer = setInterval(renderFrame, intervalMs);
+  }
+
+  buddyMoodText.textContent = detail ? `Buddy mood: ${mood} · ${detail}` : `Buddy mood: ${mood}`;
 }
 
 function openButton(label: string, url: string): HTMLButtonElement {
