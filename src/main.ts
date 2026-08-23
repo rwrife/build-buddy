@@ -28,6 +28,10 @@ async function createWindow(): Promise<void> {
     y: windowBounds?.y,
     minWidth: MIN_WINDOW_WIDTH,
     minHeight: MIN_WINDOW_HEIGHT,
+    frame: false,
+    transparent: true,
+    backgroundColor: "#00000000",
+    hasShadow: true,
     autoHideMenuBar: true,
     title: "build-buddy · GitHub Repo Manager",
     webPreferences: {

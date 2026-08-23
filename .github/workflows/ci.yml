@@ -1,0 +1,54 @@
+name: CI and desktop packages
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build
+
+  package:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+            extension: AppImage
+          - os: macos-latest
+            target: mac
+            extension: dmg
+          - os: windows-latest
+            target: win
+            extension: exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run dist -- --${{ matrix.target }} --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-buddy-${{ matrix.target }}
+          path: release/*.${{ matrix.extension }}
+          if-no-files-found: error
