@@ -1,6 +1,8 @@
 import path from "node:path";
 import { app, BrowserWindow, ipcMain, Menu, shell } from "electron";
 import { GitHubClient } from "./github";
+import { loadLocalCommandConfig } from "./local-config";
+import { formatLocalCommandLog, LocalCommandPoller } from "./local-poller";
 import { AppSettings } from "./shared/types";
 import { loadSettings, saveSettings } from "./settings";
 
@@ -9,6 +11,8 @@ const MIN_WINDOW_HEIGHT = 720;
 
 let mainWindow: BrowserWindow | null = null;
 let lifecyclePaused = false;
+let lifecycleTransition: Promise<void> = Promise.resolve();
+let localCommandPoller: LocalCommandPoller | null = null;
 let persistWindowTimer: ReturnType<typeof setTimeout> | null = null;
 
 function getSettingsPath(): string {
@@ -92,6 +96,7 @@ function registerWindowContextMenu(window: BrowserWindow): void {
         label: "Run now",
         click: () => {
           window.webContents.send("lifecycle:command", "run-now");
+          void localCommandPoller?.runNow();
         },
       },
       {
@@ -113,15 +118,57 @@ function registerWindowContextMenu(window: BrowserWindow): void {
   });
 }
 
-async function setLifecyclePaused(paused: boolean): Promise<void> {
+function setLifecyclePaused(paused: boolean): Promise<void> {
   lifecyclePaused = paused;
-  await saveSettings(getSettingsPath(), { uiPaused: paused });
 
-  if (!mainWindow || mainWindow.isDestroyed()) {
-    return;
+  if (paused) {
+    localCommandPoller?.stop();
+  } else {
+    localCommandPoller?.start();
   }
 
-  mainWindow.webContents.send("lifecycle:command", paused ? "pause" : "resume");
+  lifecycleTransition = lifecycleTransition
+    .then(async () => {
+      if (lifecyclePaused !== paused) {
+        return;
+      }
+
+      await saveSettings(getSettingsPath(), { uiPaused: paused });
+      if (lifecyclePaused !== paused || !mainWindow || mainWindow.isDestroyed()) {
+        return;
+      }
+
+      mainWindow.webContents.send("lifecycle:command", paused ? "pause" : "resume");
+    })
+    .catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[lifecycle] unable to persist pause state: ${message}`);
+    });
+
+  return lifecycleTransition;
+}
+
+async function configureLocalCommandPoller(): Promise<void> {
+  const configDirectory = process.env.BUILD_BUDDY_CONFIG_DIR || process.cwd();
+
+  try {
+    const config = await loadLocalCommandConfig(configDirectory);
+    if (!config) {
+      console.info(`[local-poller] disabled; no [local].command in ${configDirectory}`);
+      return;
+    }
+
+    localCommandPoller = new LocalCommandPoller(config, (result) => {
+      console.info(formatLocalCommandLog(result));
+    });
+
+    if (!lifecyclePaused) {
+      localCommandPoller.start();
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[local-poller] configuration error: ${message}`);
+  }
 }
 
 function registerIpcHandlers(): void {
@@ -169,12 +216,17 @@ function registerIpcHandlers(): void {
 app.whenReady().then(async () => {
   registerIpcHandlers();
   await createWindow();
+  await configureLocalCommandPoller();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       void createWindow();
     }
   });
+});
+
+app.on("before-quit", () => {
+  localCommandPoller?.stop(true);
 });
 
 app.on("window-all-closed", () => {
