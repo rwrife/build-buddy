@@ -3,6 +3,7 @@ import { app, BrowserWindow, ipcMain, Menu, shell } from "electron";
 import { GitHubClient } from "./github";
 import { loadLocalCommandConfig } from "./local-config";
 import { formatLocalCommandLog, LocalCommandPoller } from "./local-poller";
+import { loadPetConfig } from "./pet-config";
 import { AppSettings } from "./shared/types";
 import { loadSettings, saveSettings } from "./settings";
 
@@ -17,6 +18,10 @@ let persistWindowTimer: ReturnType<typeof setTimeout> | null = null;
 
 function getSettingsPath(): string {
   return path.join(app.getPath("userData"), "settings.json");
+}
+
+function getConfigDirectory(): string {
+  return process.env.BUILD_BUDDY_CONFIG_DIR || process.cwd();
 }
 
 async function createWindow(): Promise<void> {
@@ -149,7 +154,7 @@ function setLifecyclePaused(paused: boolean): Promise<void> {
 }
 
 async function configureLocalCommandPoller(): Promise<void> {
-  const configDirectory = process.env.BUILD_BUDDY_CONFIG_DIR || process.cwd();
+  const configDirectory = getConfigDirectory();
 
   try {
     const config = await loadLocalCommandConfig(configDirectory);
@@ -172,6 +177,14 @@ async function configureLocalCommandPoller(): Promise<void> {
 }
 
 function registerIpcHandlers(): void {
+  ipcMain.handle("pet:get-config", async () => {
+    const config = await loadPetConfig(getConfigDirectory());
+    if (config.warning) {
+      console.warn(`[pet] ${config.warning}`);
+    }
+    return config;
+  });
+
   ipcMain.handle("settings:get", async () => {
     const settings = await loadSettings(getSettingsPath());
     lifecyclePaused = settings.uiPaused;

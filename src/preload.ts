@@ -1,9 +1,11 @@
 import { contextBridge, ipcRenderer } from "electron";
+import { PetConfig } from "./pet-config";
 import { AppSettings, PortfolioData } from "./shared/types";
 
 type LifecycleCommand = "run-now" | "pause" | "resume";
 
 const api = {
+  getPetConfig: (): Promise<PetConfig> => ipcRenderer.invoke("pet:get-config"),
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke("settings:get"),
   saveSettings: (partial: Partial<AppSettings>): Promise<AppSettings> =>
     ipcRenderer.invoke("settings:set", partial),

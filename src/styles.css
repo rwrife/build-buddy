@@ -140,10 +140,18 @@ button.primary {
 }
 
 .buddy-face {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 14px;
-  letter-spacing: -0.4px;
+  font-family: ui-rounded, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  font-size: 22px;
   user-select: none;
+}
+
+.buddy-avatar.skin-cat {
+  border-radius: 42% 42% 50% 50%;
+}
+
+.buddy-avatar.skin-ghost {
+  border-radius: 50% 50% 38% 38%;
+  border-style: dashed;
 }
 
 .buddy-avatar.mood-happy {

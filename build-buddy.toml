@@ -23,5 +23,5 @@ size = 96
 always_on_top = true
 
 [pet]
-# Which critter to show (more skins land in v0.2 — see PLAN.md backlog).
+# Which critter to show: "duck", "cat", or "ghost".
 skin = "duck"
