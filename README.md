@@ -59,6 +59,25 @@ npm install
 npm run start
 ```
 
+### Poll a local command
+
+Edit `build-buddy.toml` in the directory where you launch the app:
+
+```toml
+[local]
+command = "npm test"
+cwd = "."
+interval = 60
+timeout = 300
+```
+
+`build-buddy.local.toml` is loaded afterward as a gitignored machine-local override.
+Relative `cwd` values resolve from the config directory. The command starts immediately,
+runs asynchronously in a child process, and repeats after the configured interval without
+blocking the window. Each run logs its pass/fail/timeout state, exit code, and duration.
+Set `BUILD_BUDDY_CONFIG_DIR` to load both files from another directory. The window's
+right-click **Run now** and **Pause/Resume** actions also control the local poller.
+
 ### Test
 
 ```bash
@@ -107,9 +126,8 @@ Later: a GitHub Actions data source, skins, multi-project buddies, and more (see
 
 ## Tech
 
-Python 3.11+ · [pywebview](https://pywebview.flowlib.com/) for the window · HTML/CSS/JS
-for the critter · stdlib for config & subprocess. Boring, fast, cross-platform,
-local-first.
+Electron · TypeScript · HTML/CSS · local TOML config · Node child processes. Cross-platform,
+local-first, and no telemetry.
 
 ## License
 

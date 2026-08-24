@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "npm run build && electron .",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test dist/tests/logic.test.js",
+    "test": "npm run build && node --test dist/tests/*.test.js",
     "package": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder"
   },
@@ -53,5 +53,8 @@
         "nsis"
       ]
     }
+  },
+  "dependencies": {
+    "smol-toml": "^1.8.0"
   }
 }
