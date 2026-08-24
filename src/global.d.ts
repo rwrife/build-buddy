@@ -1,10 +1,12 @@
 import { AppSettings, PortfolioData } from "./shared/types";
+import { PetConfig } from "./pet-config";
 
 type LifecycleCommand = "run-now" | "pause" | "resume";
 
 declare global {
   interface Window {
     buildBuddyApi: {
+      getPetConfig(): Promise<PetConfig>;
       getSettings(): Promise<AppSettings>;
       saveSettings(partial: Partial<AppSettings>): Promise<AppSettings>;
       validateToken(token: string): Promise<{ login: string }>;

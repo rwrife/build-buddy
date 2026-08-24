@@ -1,10 +1,11 @@
 import { formatFailureBubbleMessage, mapWorkflowHealthToMood } from "./shared/logic";
+import { DEFAULT_PET_SKIN, PetMood, PetSkin, PET_SKINS, PET_SKIN_FRAMES } from "./pet-skins";
 
 type VisibilityFilter = "all" | "public" | "private";
 type SortBy = "stale_desc" | "open_issues_desc" | "last_pushed_desc" | "last_pushed_asc";
 type WorkflowHealth = "passing" | "failing" | "pending" | "unknown";
 type LifecycleCommand = "run-now" | "pause" | "resume";
-type PetMood = "happy" | "sad" | "working" | "unknown";
+
 
 interface AppSettings {
   token: string;
@@ -63,6 +64,7 @@ const state: {
   dismissedFailureKey: string | null;
   isPaused: boolean;
   petMood: PetMood;
+  petSkin: PetSkin;
 } = {
   allRepos: [],
   lastFetchedAt: null,
@@ -72,6 +74,7 @@ const state: {
   dismissedFailureKey: null,
   isPaused: false,
   petMood: "unknown",
+  petSkin: DEFAULT_PET_SKIN,
 };
 
 const tokenInput = document.getElementById("token") as HTMLInputElement;
@@ -104,13 +107,6 @@ const saveSettingsButton = document.getElementById("saveSettingsButton") as HTML
 const repoTableBody = document.getElementById("repoTableBody") as HTMLTableSectionElement;
 const issueHealthBody = document.getElementById("issueHealthBody") as HTMLTableSectionElement;
 
-const MOOD_FRAMES: Record<PetMood, string[]> = {
-  happy: ["(＾◡＾)", "(＾ᴗ＾)", "(ᵔ◡ᵔ)"],
-  sad: ["(╥﹏╥)", "(;﹏;)", "(╯︵╰,)"],
-  working: ["(•̀ᴗ•́)و", "(•̀ᴗ•́)ง", "(•̀ᴗ•́)"],
-  unknown: ["(o_o)"],
-};
-
 const DEFAULT_SETTINGS: AppSettings = {
   token: "",
   watchedRepo: "",
@@ -129,6 +125,9 @@ async function bootstrap(): Promise<void> {
   wireEvents();
 
   try {
+    const petConfig = await window.buildBuddyApi.getPetConfig();
+    setPetSkin(petConfig.skin);
+
     const saved = await window.buildBuddyApi.getSettings();
     applySettingsToForm(saved);
     state.isPaused = Boolean(saved.uiPaused);
@@ -485,7 +484,7 @@ function setPetMood(mood: PetMood, detail?: string): void {
   buddyAvatar.classList.remove("mood-happy", "mood-sad", "mood-working", "mood-unknown");
   buddyAvatar.classList.add(`mood-${mood}`);
 
-  const frames = MOOD_FRAMES[mood];
+  const frames = PET_SKIN_FRAMES[state.petSkin][mood];
   let frameIndex = 0;
 
   const renderFrame = (): void => {
@@ -500,7 +499,20 @@ function setPetMood(mood: PetMood, detail?: string): void {
     state.petFrameTimer = setInterval(renderFrame, intervalMs);
   }
 
-  buddyMoodText.textContent = detail ? `Buddy mood: ${mood} · ${detail}` : `Buddy mood: ${mood}`;
+  buddyMoodText.textContent = detail
+    ? `${capitalize(state.petSkin)} buddy mood: ${mood} · ${detail}`
+    : `${capitalize(state.petSkin)} buddy mood: ${mood}`;
+}
+
+function setPetSkin(skin: PetSkin): void {
+  state.petSkin = skin;
+  buddyAvatar.classList.remove(...PET_SKINS.map((name) => `skin-${name}`));
+  buddyAvatar.classList.add(`skin-${skin}`);
+  buddyAvatar.setAttribute("aria-label", `${capitalize(skin)} build buddy mood`);
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function openButton(label: string, url: string): HTMLButtonElement {

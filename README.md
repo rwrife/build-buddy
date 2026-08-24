@@ -52,6 +52,19 @@ This branch adds an Electron desktop utility that helps answer:
 
 The watched-repo mood line updates on each refresh (manual or auto-refresh).
 
+### Choose a pet skin
+
+Set `[pet].skin` in `build-buddy.toml` (or the machine-local override) to one of the
+three bundled animated critters:
+
+```toml
+[pet]
+skin = "cat" # "duck", "cat", or "ghost"
+```
+
+Each skin has distinct happy, sad, and working animation frames. An unknown skin logs a
+warning and safely falls back to `duck`.
+
 ### Run locally
 
 ```bash
