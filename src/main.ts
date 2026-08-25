@@ -1,16 +1,19 @@
 import path from "node:path";
 import { app, BrowserWindow, ipcMain, Menu, shell } from "electron";
+import { BuddyWindowManager } from "./buddy-window-manager";
 import { GitHubClient } from "./github";
 import { loadLocalCommandConfig } from "./local-config";
 import { formatLocalCommandLog, LocalCommandPoller } from "./local-poller";
 import { loadPetConfig } from "./pet-config";
 import { AppSettings } from "./shared/types";
 import { loadSettings, saveSettings } from "./settings";
+import { loadBuddySourcesConfig } from "./source-config";
 
 const MIN_WINDOW_WIDTH = 980;
 const MIN_WINDOW_HEIGHT = 720;
 
 let mainWindow: BrowserWindow | null = null;
+let buddyWindowManager: BuddyWindowManager | null = null;
 let lifecyclePaused = false;
 let lifecycleTransition: Promise<void> = Promise.resolve();
 let localCommandPoller: LocalCommandPoller | null = null;
@@ -176,6 +179,25 @@ async function configureLocalCommandPoller(): Promise<void> {
   }
 }
 
+async function configureBuddyWindows(): Promise<boolean> {
+  const configDirectory = getConfigDirectory();
+  try {
+    const sources = await loadBuddySourcesConfig(configDirectory);
+    if (sources.length === 0) {
+      return false;
+    }
+
+    buddyWindowManager = new BuddyWindowManager(getSettingsPath(), app.getAppPath());
+    buddyWindowManager.launch(sources);
+    console.info(`[buddy-sources] launched ${sources.length} independent buddy window(s)`);
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[buddy-sources] configuration error: ${message}`);
+    return true;
+  }
+}
+
 function registerIpcHandlers(): void {
   ipcMain.handle("pet:get-config", async () => {
     const config = await loadPetConfig(getConfigDirectory());
@@ -229,16 +251,20 @@ function registerIpcHandlers(): void {
 app.whenReady().then(async () => {
   registerIpcHandlers();
   await createWindow();
-  await configureLocalCommandPoller();
+  const hasBuddySources = await configureBuddyWindows();
+  if (!hasBuddySources) {
+    await configureLocalCommandPoller();
+  }
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    if (!mainWindow) {
       void createWindow();
     }
   });
 });
 
 app.on("before-quit", () => {
+  buddyWindowManager?.stopAll();
   localCommandPoller?.stop(true);
 });
 

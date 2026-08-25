@@ -1,27 +1,29 @@
 # build-buddy sample config
-# Copy to build-buddy.local.toml (gitignored) to customize.
+# Copy to build-buddy.local.toml (gitignored) to customize. If the local file
+# defines [[sources]], that list replaces this sample list.
 
-[source]
-# "local" runs a shell command and maps its exit code to a mood.
-# "github" (M6) polls a repo's latest GitHub Actions run.
+# Each source gets an independent always-on-top buddy window.
+[[sources]]
+id = "local-tests"
+name = "Local tests"
 kind = "local"
-
-[local]
-# The command build-buddy runs on an interval. Exit 0 = happy, non-zero = sad.
 command = "npm test"
-# How often to run it, in seconds.
+cwd = "."
 interval = 30
-# Max seconds to let the command run before treating it as failed.
 timeout = 120
-
-[window]
-# Starting position of the little always-on-top window (pixels from top-left).
+skin = "duck"
 x = 40
 y = 40
-# Critter size in pixels.
-size = 96
-always_on_top = true
+
+[[sources]]
+id = "build-buddy-ci"
+name = "Build Buddy CI"
+kind = "github"
+repo = "rwrife/build-buddy"
+interval = 60
+skin = "cat"
+# x/y are optional. Unpositioned buddies use a non-overlapping grid.
 
 [pet]
-# Which critter to show: "duck", "cat", or "ghost".
+# Skin for the dashboard buddy: "duck", "cat", or "ghost".
 skin = "duck"

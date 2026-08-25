@@ -72,24 +72,43 @@ npm install
 npm run start
 ```
 
-### Poll a local command
+### Configure multiple project buddies
 
-Edit `build-buddy.toml` in the directory where you launch the app:
+Define one or more `[[sources]]` entries in `build-buddy.toml`. Each source opens its own
+small, draggable, always-on-top pet window with an independent mood and lifecycle:
 
 ```toml
-[local]
+[[sources]]
+id = "web-tests"
+name = "Web tests"
+kind = "local"
 command = "npm test"
-cwd = "."
+cwd = "packages/web"
 interval = 60
 timeout = 300
+skin = "duck"
+x = 40
+y = 40
+
+[[sources]]
+id = "api-ci"
+name = "API CI"
+kind = "github"
+repo = "owner/api"
+interval = 60
+skin = "cat"
+# x/y are optional; omitted buddies use a non-overlapping grid.
 ```
 
-`build-buddy.local.toml` is loaded afterward as a gitignored machine-local override.
-Relative `cwd` values resolve from the config directory. The command starts immediately,
-runs asynchronously in a child process, and repeats after the configured interval without
-blocking the window. Each run logs its pass/fail/timeout state, exit code, and duration.
-Set `BUILD_BUDDY_CONFIG_DIR` to load both files from another directory. The window's
-right-click **Run now** and **Pause/Resume** actions also control the local poller.
+`build-buddy.local.toml` is loaded afterward as a gitignored machine-local override. If it
+defines `[[sources]]`, its complete source list replaces the base list. Relative `cwd` values
+resolve from the config directory. GitHub buddies use the PAT saved in the dashboard.
+Right-click an individual buddy to run, pause/resume, or quit only that source; the other
+buddies continue polling.
+
+A legacy single `[local]` table is still supported when no `[[sources]]` list exists. Its
+command starts immediately, runs asynchronously, and repeats after the configured interval.
+Set `BUILD_BUDDY_CONFIG_DIR` to load both config files from another directory.
 
 ### Test
 
@@ -130,8 +149,7 @@ room.
 - The critter lives in a small, frameless, always-on-top, draggable window.
 - Config lives in a simple `build-buddy.toml`. No accounts. No cloud. No telemetry.
 
-Later: a GitHub Actions data source, skins, multi-project buddies, and more (see
-[`PLAN.md`](PLAN.md) §8).
+Later: sound effects, streak tracking, and more (see [`PLAN.md`](PLAN.md) §8).
 
 ## Status
 
