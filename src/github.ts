@@ -51,7 +51,7 @@ interface RestWorkflowJobsResponse {
   jobs: RestWorkflowJob[];
 }
 
-interface WorkflowSnapshot {
+export interface WorkflowSnapshot {
   health: WorkflowHealth;
   healthMessage: string | null;
   latestWorkflowName: string | null;
@@ -196,7 +196,7 @@ export class GitHubClient {
     return response.data.length;
   }
 
-  private async getWorkflowSnapshot(fullName: string): Promise<WorkflowSnapshot> {
+  async getWorkflowSnapshot(fullName: string): Promise<WorkflowSnapshot> {
     try {
       const response = await this.requestJson<RestWorkflowRunsResponse>(
         `/repos/${fullName}/actions/runs?per_page=10&page=1`,

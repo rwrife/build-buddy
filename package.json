@@ -33,6 +33,8 @@
       "dist/src/**/*.js",
       "src/index.html",
       "src/styles.css",
+      "src/buddy.html",
+      "src/buddy.css",
       "package.json"
     ],
     "linux": {

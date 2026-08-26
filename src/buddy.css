@@ -1,0 +1,108 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  color: #e2e8f0;
+}
+
+main {
+  -webkit-app-region: drag;
+  box-sizing: border-box;
+  width: 168px;
+  height: 156px;
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid rgba(71, 85, 105, 0.92);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.94);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.38);
+  user-select: none;
+}
+
+.source-name {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.buddy-avatar {
+  width: 68px;
+  height: 68px;
+  margin: 6px 0 4px;
+  border: 2px solid #64748b;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.buddy-face {
+  font-family: ui-rounded, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  font-size: 23px;
+}
+
+.buddy-avatar.skin-cat {
+  border-radius: 42% 42% 50% 50%;
+}
+
+.buddy-avatar.skin-ghost {
+  border-radius: 50% 50% 38% 38%;
+  border-style: dashed;
+}
+
+.buddy-avatar.mood-happy {
+  background: radial-gradient(circle at 30% 25%, #34d399, #065f46);
+  border-color: #10b981;
+}
+
+.buddy-avatar.mood-sad {
+  background: radial-gradient(circle at 30% 25%, #f87171, #7f1d1d);
+  border-color: #ef4444;
+}
+
+.buddy-avatar.mood-working {
+  background: radial-gradient(circle at 30% 25%, #f59e0b, #78350f);
+  border-color: #f59e0b;
+  animation: buddy-pulse 900ms ease-in-out infinite;
+}
+
+.buddy-avatar.mood-unknown {
+  background: radial-gradient(circle at 30% 25%, #94a3b8, #334155);
+}
+
+.source-detail,
+.mood-detail {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.mood-detail {
+  color: #cbd5e1;
+}
+
+@keyframes buddy-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
