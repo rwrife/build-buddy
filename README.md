@@ -6,12 +6,12 @@ Green pipeline? It's bouncing and happy. Tests failing? It's sick and sulking. P
 Confetti. `build-buddy` is an **ambient, glanceable status monitor disguised as a pet** —
 so you can stop keeping a CI tab open just to see if the build went red.
 
-> ⚠️ Early days. This is a fresh auto-tool-lab experiment — see [`PLAN.md`](PLAN.md) for
-> the full roadmap and current milestones.
+The M1 desktop scaffold is complete. See [`PLAN.md`](PLAN.md) for the roadmap and
+current milestones.
 
-## Issue #11 MVP increment: GitHub Repo Manager (Electron + TypeScript)
+## Desktop app (Electron + TypeScript)
 
-This branch adds an Electron desktop utility that helps answer:
+The app includes a GitHub repository manager that helps answer:
 
 - which repos are **public** vs **private**,
 - which repos have **open issues**,
@@ -71,6 +71,9 @@ warning and safely falls back to `duck`.
 npm install
 npm run start
 ```
+
+This opens the frameless desktop dashboard plus any configured buddy windows. Buddy
+windows stay on top and can be dragged anywhere on screen; right-click one for controls.
 
 ### Configure multiple project buddies
 
@@ -153,7 +156,9 @@ Later: sound effects, streak tracking, and more (see [`PLAN.md`](PLAN.md) §8).
 
 ## Status
 
-🚧 Bootstrapping. Follow the milestone issues (`[M1]`…`[M6]`) to watch it come together.
+M1 (desktop scaffold) is complete. The Electron app is installable, linted in CI, and
+ships frameless draggable buddy windows; follow the remaining milestone issues for new
+data sources and polish.
 
 ## Tech
 
