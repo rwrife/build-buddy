@@ -55,66 +55,52 @@ The smallest genuinely useful thing:
 - A tiny **config file** (`build-buddy.toml`) for: the command, the poll interval, and
   window position.
 - **Right-click menu**: Run now, Pause, Quit.
-- Runs on Windows/macOS/Linux from one Python codebase.
+- Runs on Windows/macOS/Linux from one Electron + TypeScript codebase.
 
 That's it. No accounts, no cloud, no telemetry.
 
 ## 5. Tech stack
 
-Boring, fast, cross-platform:
+- **Electron + TypeScript** for cross-platform frameless, always-on-top windows and a
+  strongly typed main/preload/renderer boundary.
+- **HTML/CSS** for draggable, animated, skinnable critters.
+- **smol-toml** for local configuration and **Node child processes** for local commands.
+- **electron-builder** for AppImage, DMG, and NSIS packages in CI.
 
-- **Python 3.11+** — ubiquitous, quick to iterate, great subprocess handling.
-- **[pywebview](https://pywebview.flowlib.com/)** for the window — gives a frameless,
-  always-on-top, transparent-capable window backed by the OS webview, so the critter can
-  be drawn/animated in plain **HTML/CSS/JS** (easy sprite animation, easy theming) without
-  shipping a heavy GUI toolkit. Fallback consideration: Tkinter if pywebview proves fiddly
-  on a target OS (documented as a risk).
-- **[tomllib](https://docs.python.org/3/library/tomllib.html)** (stdlib) for config —
-  zero dependencies for reading TOML.
-- **subprocess** (stdlib) for running the user's build/test command.
-- Packaging later via **PyInstaller** for one-file binaries per OS.
-
-Rationale: HTML/CSS for the pet = trivial animation + skinnable; Python core = fast to
-build and easy for contributors; stdlib-first = light footprint, true to the "small,
-local-first utility" promise.
+The project adopted Electron after the original Python/pywebview proposal. The product
+goals remain unchanged: local-first operation, no telemetry, and one desktop codebase.
 
 ## 6. Architecture
 
 ```
 build-buddy/
-├── buildbuddy/
-│   ├── __main__.py        # entrypoint: load config, start poller + window
-│   ├── config.py          # load/validate build-buddy.toml, defaults, discovery
-│   ├── poller.py          # runs the command on an interval, emits Mood events
-│   ├── mood.py            # Mood enum + exit-code/status → Mood mapping
-│   ├── window.py          # pywebview window setup (frameless, on-top, tray/menu)
-│   └── web/               # the critter UI (HTML/CSS/JS + sprite assets)
-│       ├── index.html
-│       ├── buddy.css
-│       └── buddy.js       # listens for mood changes, swaps animation
-├── assets/                # sprite frames per mood
-├── build-buddy.toml       # sample config
+├── src/
+│   ├── main.ts                  # Electron lifecycle and dashboard window
+│   ├── buddy-window-manager.ts  # independent critter windows and source runtimes
+│   ├── local-poller.ts          # bounded local-command polling
+│   ├── github.ts                # GitHub Actions/repository data source
+│   ├── buddy.html / buddy.css   # draggable critter UI
+│   └── renderer.ts              # dashboard UI
+├── tests/                       # Node test runner coverage
+├── assets/                      # application icons
+├── build-buddy.toml             # sample config
 ├── PLAN.md
 └── README.md
 ```
 
 Key modules:
 
-- **poller** — the heart. Owns a timer, runs the configured command in a subprocess with
-  a timeout, captures exit code, and pushes a `Mood` to the window via the pywebview JS
-  bridge. Never blocks the UI thread.
-- **mood** — pure mapping logic (exit code / CI conclusion → `Mood`). Unit-testable with
-  no GUI.
-- **window** — thin wrapper over pywebview; exposes a `set_mood(mood)` JS call and the
-  right-click menu actions.
-- **web/** — dumb view: given a mood string, play the matching animation. Fully swappable
-  for reskins/themes.
+- **local poller / GitHub source** — run independently and publish typed mood updates.
+- **buddy window manager** — creates fixed frameless, always-on-top windows and owns each
+  source runtime's lifecycle.
+- **preload + renderer** — expose a narrow IPC bridge and render mood/skin changes without
+  Node integration in web content.
 
 ## 7. Milestones (each shippable)
 
-1. **M1 — Scaffold + hello-world.** Python package skeleton, `pip install -e .`,
-   `python -m buildbuddy` opens a frameless always-on-top window that renders a static
-   critter and can be dragged. CI (lint) green.
+1. **M1 — Scaffold + hello-world (complete).** Installable Electron package; `npm run
+   start` opens frameless always-on-top draggable critter windows; TypeScript lint,
+   tests, builds, and desktop packaging run in CI.
 2. **M2 — Config + local-command poller.** Load `build-buddy.toml`, run the configured
    command on an interval in a subprocess, log exit codes. No UI reaction yet.
 3. **M3 — Moods wired to the pet.** Exit-code → `Mood` mapping; poller pushes mood to the

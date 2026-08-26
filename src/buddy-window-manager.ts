@@ -7,9 +7,7 @@ import { mapWorkflowHealthToMood } from "./shared/logic";
 import { loadSettings } from "./settings";
 import { BuddySourceConfig, GitHubBuddySourceConfig, LocalBuddySourceConfig } from "./source-config";
 import { BuddySourceDriver, BuddySourceRuntime } from "./source-runtime";
-
-const BUDDY_WINDOW_WIDTH = 168;
-const BUDDY_WINDOW_HEIGHT = 156;
+import { createBuddyWindowOptions } from "./window-options";
 
 interface BuddyWindowRecord {
   window: BrowserWindow;
@@ -51,29 +49,8 @@ export class BuddyWindowManager {
   }
 
   private createBuddyWindow(source: BuddySourceConfig): void {
-    const window = new BrowserWindow({
-      width: BUDDY_WINDOW_WIDTH,
-      height: BUDDY_WINDOW_HEIGHT,
-      x: source.x,
-      y: source.y,
-      minWidth: BUDDY_WINDOW_WIDTH,
-      minHeight: BUDDY_WINDOW_HEIGHT,
-      maxWidth: BUDDY_WINDOW_WIDTH,
-      maxHeight: BUDDY_WINDOW_HEIGHT,
-      frame: false,
-      transparent: true,
-      backgroundColor: "#00000000",
-      hasShadow: true,
-      alwaysOnTop: true,
-      resizable: false,
-      autoHideMenuBar: true,
-      title: `build-buddy · ${source.name}`,
-      webPreferences: {
-        preload: path.join(__dirname, "buddy-preload.js"),
-        contextIsolation: true,
-        nodeIntegration: false,
-      },
-    });
+    const preloadPath = path.join(__dirname, "buddy-preload.js");
+    const window = new BrowserWindow(createBuddyWindowOptions(source, preloadPath));
 
     const publish = (update: BuddyMoodUpdate): void => {
       if (!window.isDestroyed()) {
